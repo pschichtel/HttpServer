@@ -63,6 +63,46 @@ public class HttpServerBuilder {
         this.configure = configure;
     }
 
+    public SocketAddress getBindAddress() {
+        return bindAddress;
+    }
+
+    public HttpServerBuilder setBindAddress(SocketAddress bindAddress) {
+        this.bindAddress = bindAddress;
+        return this;
+    }
+
+    public int getMaximumContentLength() {
+        return maximumContentLength;
+    }
+
+    public HttpServerBuilder setMaximumContentLength(int maximumContentLength) {
+        this.maximumContentLength = maximumContentLength;
+        return this;
+    }
+
+    public Supplier<EventLoopGroup> getEventLoopGroup() {
+        return eventLoopGroup;
+    }
+
+    public HttpServerBuilder setEventLoopGroup(Supplier<EventLoopGroup> eventLoopGroup) {
+        this.eventLoopGroup = eventLoopGroup;
+        return this;
+    }
+
+    public Class<? extends ServerSocketChannel> getSocketChannelType() {
+        return socketChannelType;
+    }
+
+    public HttpServerBuilder setSocketChannelType(Class<? extends ServerSocketChannel> socketChannelType) {
+        this.socketChannelType = socketChannelType;
+        return this;
+    }
+
+    public Consumer<SocketChannel> getConfigure() {
+        return configure;
+    }
+
     public HttpServer build() {
         return new HttpServer(eventLoopGroup.get(), socketChannelType, bindAddress, maximumContentLength, configure);
     }
