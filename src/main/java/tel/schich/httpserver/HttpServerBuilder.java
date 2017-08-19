@@ -34,6 +34,7 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -47,7 +48,7 @@ public class HttpServerBuilder {
     private Class<? extends ServerSocketChannel> socketChannelType;
     private final Consumer<SocketChannel> configure;
 
-    public HttpServerBuilder(Function<FullHttpRequest, FullHttpResponse> handler) {
+    public HttpServerBuilder(Function<FullHttpRequest, CompletableFuture<FullHttpResponse>> handler) {
         this(simpleHandler(handler));
     }
 

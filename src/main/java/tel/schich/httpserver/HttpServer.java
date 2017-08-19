@@ -83,10 +83,10 @@ public class HttpServer {
         return CompletableFuture.completedFuture(null);
     }
 
-    private static FullHttpResponse handle(FullHttpRequest req) {
+    private static CompletableFuture<FullHttpResponse> handle(FullHttpRequest req) {
         String payload = req.method() + " " + req.uri() + " " + req.protocolVersion() + "\n";
         System.out.print(payload);
-        return response(req, OK, payload);
+        return CompletableFuture.completedFuture(response(req, OK, payload));
     }
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {

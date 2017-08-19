@@ -31,14 +31,25 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.concurrent.Future;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static io.netty.channel.ChannelFutureListener.CLOSE;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class HttpServerUtil {
-    public static ChannelInboundHandler simpleHandler(Function<FullHttpRequest, FullHttpResponse> handler) {
-        return new SimpleFunctionHandler(handler);
+
+    public static FullHttpResponse defaultErrorResponse(HttpRequest request) {
+        return new DefaultFullHttpResponse(request.protocolVersion(), HttpResponseStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    public static ChannelInboundHandler simpleHandler(Function<FullHttpRequest, CompletableFuture<FullHttpResponse>> handler) {
+        return simpleHandler(handler, (req, t) -> completedFuture(defaultErrorResponse(req)));
+    }
+
+    public static ChannelInboundHandler simpleHandler(Function<FullHttpRequest, CompletableFuture<FullHttpResponse>> success, BiFunction<FullHttpRequest, Throwable, CompletableFuture<FullHttpResponse>> error) {
+        return new SimpleFunctionHandler(success, error);
     }
 
     public static FullHttpResponse response(HttpRequest req, HttpResponseStatus status, String content) {
@@ -63,15 +74,31 @@ public class HttpServerUtil {
     @ChannelHandler.Sharable
     private static final class SimpleFunctionHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
-        private final Function<FullHttpRequest, FullHttpResponse> handler;
+        private final Function<FullHttpRequest, CompletableFuture<FullHttpResponse>> successHandler;
+        private final BiFunction<FullHttpRequest, Throwable, CompletableFuture<FullHttpResponse>> errorHandler;
 
-        private SimpleFunctionHandler(Function<FullHttpRequest, FullHttpResponse> handler) {
-            this.handler = handler;
+        private SimpleFunctionHandler(Function<FullHttpRequest, CompletableFuture<FullHttpResponse>> success, BiFunction<FullHttpRequest, Throwable, CompletableFuture<FullHttpResponse>> error) {
+            successHandler = success;
+            errorHandler = error;
+        }
+
+        private static void writeResponse(ChannelHandlerContext ctx, HttpResponse res) {
+            ctx.writeAndFlush(res).addListener(CLOSE);
         }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
-            ctx.writeAndFlush(handler.apply(msg)).addListener(CLOSE);
+            successHandler.apply(msg).whenComplete((response, t) -> {
+                if (response != null) {
+                    writeResponse(ctx, response);
+                } else {
+                    onError(ctx, msg, t);
+                }
+            });
+        }
+
+        private void onError(ChannelHandlerContext ctx, FullHttpRequest req, Throwable t) {
+            errorHandler.apply(req, t).whenComplete((res, tt) -> writeResponse(ctx, res != null ? res : defaultErrorResponse(req)));
         }
     }
 }
