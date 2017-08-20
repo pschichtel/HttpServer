@@ -28,23 +28,22 @@ import tel.schich.httprequestrouter.RouteTree;
 import tel.schich.httprequestrouter.segment.SegmentOrder;
 import tel.schich.httprequestrouter.segment.factory.SegmentFactory;
 
-public class RoutedHandlerBuilder implements HandlerSink {
-    private RequestRouter<RouteHandler> router;
+public class MutableRoutingHandler extends RoutingHandler implements HandlerSink {
+    private volatile RequestRouter<RouteHandler> router;
 
-    public RoutedHandlerBuilder(SegmentFactory segmentFactory, SegmentOrder<RouteHandler> order) {
-        this.router = new RequestRouter<>(segmentFactory, RouteTree.create(order));
+    public MutableRoutingHandler(SegmentFactory segmentFactory, SegmentOrder<RouteHandler> order, FallbackHandler notFoundHandler) {
+        super(notFoundHandler);
+        router = new RequestRouter<>(segmentFactory, RouteTree.create(order));
     }
 
     @Override
-    public RoutedHandlerBuilder addHandler(HttpMethod method, String path, RouteHandler handler) {
-        router = router.withHandler(method.name(), path, handler);
-        return this;
+    public RequestRouter<RouteHandler> getRouter() {
+        return router;
     }
 
-    public RoutedHandlerBuilder withHandlersFrom(Class<?>... handlerContainers) {
-        for (Class<?> handlerContainer : handlerContainers) {
-            RouteHandlerExtractor.extractHandlers(handlerContainer, null /* TODO */);
-        }
+    @Override
+    public synchronized MutableRoutingHandler addHandler(HttpMethod method, String route, RouteHandler handler) {
+        router = router.withHandler(method.name(), route, handler);
         return this;
     }
 }

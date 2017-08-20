@@ -22,29 +22,13 @@
  */
 package tel.schich.httpserver.routed;
 
-import io.netty.handler.codec.http.HttpMethod;
-import tel.schich.httprequestrouter.RequestRouter;
-import tel.schich.httprequestrouter.RouteTree;
-import tel.schich.httprequestrouter.segment.SegmentOrder;
-import tel.schich.httprequestrouter.segment.factory.SegmentFactory;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import tel.schich.httprequestrouter.RoutingResult;
 
-public class RoutedHandlerBuilder implements HandlerSink {
-    private RequestRouter<RouteHandler> router;
+import java.util.concurrent.CompletableFuture;
 
-    public RoutedHandlerBuilder(SegmentFactory segmentFactory, SegmentOrder<RouteHandler> order) {
-        this.router = new RequestRouter<>(segmentFactory, RouteTree.create(order));
-    }
-
-    @Override
-    public RoutedHandlerBuilder addHandler(HttpMethod method, String path, RouteHandler handler) {
-        router = router.withHandler(method.name(), path, handler);
-        return this;
-    }
-
-    public RoutedHandlerBuilder withHandlersFrom(Class<?>... handlerContainers) {
-        for (Class<?> handlerContainer : handlerContainers) {
-            RouteHandlerExtractor.extractHandlers(handlerContainer, null /* TODO */);
-        }
-        return this;
-    }
+@FunctionalInterface
+public interface FallbackHandler {
+    CompletableFuture<FullHttpResponse> handle(FullHttpRequest req, RoutingResult<RouteHandler> result);
 }

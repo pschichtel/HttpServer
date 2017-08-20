@@ -22,29 +22,18 @@
  */
 package tel.schich.httpserver.routed;
 
-import io.netty.handler.codec.http.HttpMethod;
 import tel.schich.httprequestrouter.RequestRouter;
-import tel.schich.httprequestrouter.RouteTree;
-import tel.schich.httprequestrouter.segment.SegmentOrder;
-import tel.schich.httprequestrouter.segment.factory.SegmentFactory;
 
-public class RoutedHandlerBuilder implements HandlerSink {
-    private RequestRouter<RouteHandler> router;
+public class ImmutableRoutingHandler extends RoutingHandler {
+    private final RequestRouter<RouteHandler> router;
 
-    public RoutedHandlerBuilder(SegmentFactory segmentFactory, SegmentOrder<RouteHandler> order) {
-        this.router = new RequestRouter<>(segmentFactory, RouteTree.create(order));
+    public ImmutableRoutingHandler(RequestRouter<RouteHandler> router, FallbackHandler notFoundHandler) {
+        super(notFoundHandler);
+        this.router = router;
     }
 
-    @Override
-    public RoutedHandlerBuilder addHandler(HttpMethod method, String path, RouteHandler handler) {
-        router = router.withHandler(method.name(), path, handler);
-        return this;
+    public RequestRouter<RouteHandler> getRouter() {
+        return router;
     }
 
-    public RoutedHandlerBuilder withHandlersFrom(Class<?>... handlerContainers) {
-        for (Class<?> handlerContainer : handlerContainers) {
-            RouteHandlerExtractor.extractHandlers(handlerContainer, null /* TODO */);
-        }
-        return this;
-    }
 }

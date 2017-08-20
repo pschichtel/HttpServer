@@ -20,31 +20,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tel.schich.httpserver.routed;
+package tel.schich.httpserver;
 
-import io.netty.handler.codec.http.HttpMethod;
-import tel.schich.httprequestrouter.RequestRouter;
-import tel.schich.httprequestrouter.RouteTree;
-import tel.schich.httprequestrouter.segment.SegmentOrder;
-import tel.schich.httprequestrouter.segment.factory.SegmentFactory;
+import java.nio.ByteBuffer;
 
-public class RoutedHandlerBuilder implements HandlerSink {
-    private RequestRouter<RouteHandler> router;
-
-    public RoutedHandlerBuilder(SegmentFactory segmentFactory, SegmentOrder<RouteHandler> order) {
-        this.router = new RequestRouter<>(segmentFactory, RouteTree.create(order));
-    }
-
-    @Override
-    public RoutedHandlerBuilder addHandler(HttpMethod method, String path, RouteHandler handler) {
-        router = router.withHandler(method.name(), path, handler);
-        return this;
-    }
-
-    public RoutedHandlerBuilder withHandlersFrom(Class<?>... handlerContainers) {
-        for (Class<?> handlerContainer : handlerContainers) {
-            RouteHandlerExtractor.extractHandlers(handlerContainer, null /* TODO */);
-        }
-        return this;
-    }
+public interface BodyParser<T> {
+    T parse(ByteBuffer buffer);
 }

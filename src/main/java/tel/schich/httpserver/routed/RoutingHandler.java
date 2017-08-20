@@ -22,29 +22,28 @@
  */
 package tel.schich.httpserver.routed;
 
-import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 import tel.schich.httprequestrouter.RequestRouter;
-import tel.schich.httprequestrouter.RouteTree;
-import tel.schich.httprequestrouter.segment.SegmentOrder;
-import tel.schich.httprequestrouter.segment.factory.SegmentFactory;
+import tel.schich.httprequestrouter.RoutingResult;
 
-public class RoutedHandlerBuilder implements HandlerSink {
-    private RequestRouter<RouteHandler> router;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
-    public RoutedHandlerBuilder(SegmentFactory segmentFactory, SegmentOrder<RouteHandler> order) {
-        this.router = new RequestRouter<>(segmentFactory, RouteTree.create(order));
+public abstract class RoutingHandler implements Function<FullHttpRequest, CompletableFuture<FullHttpResponse>> {
+    private final FallbackHandler notFoundHandler;
+
+    public RoutingHandler(FallbackHandler notFoundHandler) {
+        this.notFoundHandler = notFoundHandler;
     }
+
+    public abstract RequestRouter<RouteHandler> getRouter();
 
     @Override
-    public RoutedHandlerBuilder addHandler(HttpMethod method, String path, RouteHandler handler) {
-        router = router.withHandler(method.name(), path, handler);
-        return this;
-    }
-
-    public RoutedHandlerBuilder withHandlersFrom(Class<?>... handlerContainers) {
-        for (Class<?> handlerContainer : handlerContainers) {
-            RouteHandlerExtractor.extractHandlers(handlerContainer, null /* TODO */);
-        }
-        return this;
+    public CompletableFuture<FullHttpResponse> apply(FullHttpRequest req) {
+        RoutingResult<RouteHandler> result = getRouter().routeRequest(req.method().toString(), req.uri());
+        Optional<RouteHandler> handler = result.getHandler();
+        return handler.orElseGet(() -> r -> notFoundHandler.handle(r, result)).handle(req);
     }
 }
